@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example.mysub</groupId>
+    <artifactId>my-searobots-sub</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>My SeaRobots Submarine</name>
+    <description>Starter template for a SeaRobots League autonomous submarine</description>
+
+    <!--
+        IMPORTANT — SECURITY & LEAGUE COMPILATION NOTE:
+        This pom.xml exists ONLY for your local IDE setup and local testing (`mvn test`).
+        For security reasons, the SeaRobots League will NEVER execute Maven or any build
+        scripts from your repository. Instead, it compiles `src/main/java/**/*.java`
+        directly with `javac -release 25 -proc:none` against `searobots-api` alone.
+
+        Therefore:
+        - Do NOT add external compile dependencies here (they will not exist in the league).
+        - Do NOT rely on annotation processors, code generation, or Maven plugins.
+        - Keep `searobots-engine` strictly in `test` scope.
+    -->
+
+    <properties>
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <searobots.version>0.1.2</searobots.version>
+        <junit.version>5.11.4</junit.version>
+    </properties>
+
+    <dependencies>
+        <!-- The ONLY compile dependency available when your sub runs in the league. -->
+        <dependency>
+            <groupId>se.hirt.searobots</groupId>
+            <artifactId>searobots-api</artifactId>
+            <version>${searobots.version}</version>
+        </dependency>
+
+        <!-- Test-only: headless simulation engine + built-in AI opponents for local testing. -->
+        <dependency>
+            <groupId>se.hirt.searobots</groupId>
+            <artifactId>searobots-engine</artifactId>
+            <version>${searobots.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.0</version>
+                <configuration>
+                    <proc>none</proc>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.2</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
