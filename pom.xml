@@ -13,22 +13,39 @@
 
     <!--
         IMPORTANT — SECURITY & LEAGUE COMPILATION NOTE:
-        This pom.xml exists ONLY for your local IDE setup and local testing (`mvn test`).
+        This pom.xml exists ONLY for your local IDE setup, sparring, 3D visualization, and tests.
         For security reasons, the SeaRobots League will NEVER execute Maven or any build
         scripts from your repository. Instead, it compiles `src/main/java/**/*.java`
-        directly with `javac -release 25 -proc:none` against `searobots-api` alone.
+        directly with javac (release 25, -proc:none) against `searobots-api` alone
+        (see the README for the exact command).
 
         Therefore:
         - Do NOT add external compile dependencies here (they will not exist in the league).
         - Do NOT rely on annotation processors, code generation, or Maven plugins.
-        - Keep `searobots-engine` strictly in `test` scope.
+        - Keep `searobots-engine` and `searobots-viewer` strictly in `test` scope / dev profiles.
     -->
 
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <searobots.version>0.1.2</searobots.version>
+        <searobots.version>0.1.3</searobots.version>
         <junit.version>5.11.4</junit.version>
+
+        <!-- Your SubmarineController entry point (update this once when you rename your class) -->
+        <sub.class>com.example.mysub.StarterSubmarine</sub.class>
+
+        <!-- Overridable defaults for -Pwatch, -Pmatch33, -Preplay, -Pcheck, -Pmanifest -->
+        <opponent>claude</opponent>
+        <games>33</games>
+        <seed></seed>
+        <speed>1</speed>
+        <threads>4</threads>
+        <combatMinutes>120</combatMinutes>
+        <extraCp></extraCp>
+        <replay>target/replays/starter-vs-default.srl</replay>
+        <!-- SPDX id of your LICENSE file, used by -Pmanifest (the template ships BSD-3-Clause) -->
+        <license>BSD-3-Clause</license>
+        <sub.description>Simple, readable starter submarine for SeaRobots League.</sub.description>
     </properties>
 
     <dependencies>
@@ -39,7 +56,7 @@
             <version>${searobots.version}</version>
         </dependency>
 
-        <!-- Test-only: headless simulation engine + built-in AI opponents for local testing. -->
+        <!-- Test-only: headless simulation engine, built-in AI opponents, and sparring/preflight CLIs. -->
         <dependency>
             <groupId>se.hirt.searobots</groupId>
             <artifactId>searobots-engine</artifactId>
@@ -72,4 +89,213 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Automatic macOS GLFW main-thread flag for 3D viewer profiles -->
+        <profile>
+            <id>mac</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                </os>
+            </activation>
+            <properties>
+                <viewer.jvmArgs>-XstartOnFirstThread</viewer.jvmArgs>
+            </properties>
+        </profile>
+        <profile>
+            <id>non-mac</id>
+            <activation>
+                <os>
+                    <family>!mac</family>
+                </os>
+            </activation>
+            <properties>
+                <viewer.jvmArgs>-Dsearobots.viewer=true</viewer.jvmArgs>
+            </properties>
+        </profile>
+
+        <!-- Launch interactive 3D viewer: mvn -Pwatch [-Dopponent=codex] [-Dseed=2c] [-Dspeed=4] -->
+        <profile>
+            <id>watch</id>
+            <dependencies>
+                <dependency>
+                    <groupId>se.hirt.searobots</groupId>
+                    <artifactId>searobots-viewer</artifactId>
+                    <version>${searobots.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <defaultGoal>test-compile exec:exec</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <configuration>
+                            <executable>java</executable>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>${viewer.jvmArgs}</argument>
+                                <argument>-XX:+UseZGC</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-Dsearobots.extraCp=${extraCp}</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>se.hirt.searobots.viewer.SubmarineScene3D</argument>
+                                <argument>--ship1</argument>
+                                <argument>${sub.class}</argument>
+                                <argument>--ship2</argument>
+                                <argument>${opponent}</argument>
+                                <argument>--speed</argument>
+                                <argument>${speed}</argument>
+                                <argument>--seed</argument>
+                                <argument>${seed}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Open any recorded .srl replay in the 3D viewer: mvn -Preplay -Dreplay=target/replays/foo.srl -->
+        <profile>
+            <id>replay</id>
+            <dependencies>
+                <dependency>
+                    <groupId>se.hirt.searobots</groupId>
+                    <artifactId>searobots-viewer</artifactId>
+                    <version>${searobots.version}</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <defaultGoal>test-compile exec:exec</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <configuration>
+                            <executable>java</executable>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>${viewer.jvmArgs}</argument>
+                                <argument>-XX:+UseZGC</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>se.hirt.searobots.viewer.SubmarineScene3D</argument>
+                                <argument>--replay</argument>
+                                <argument>${replay}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Run 33 parallel headless league-rules matches: mvn -Pmatch33 [-Dopponent=claude|codex|gemini|default|all] [-Dseed=202612] -->
+        <profile>
+            <id>match33</id>
+            <build>
+                <defaultGoal>test-compile exec:exec</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <configuration>
+                            <executable>java</executable>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>-XX:+UseZGC</argument>
+                                <argument>-Xmx2g</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>se.hirt.searobots.engine.LeagueSparringRunner</argument>
+                                <argument>--sub</argument>
+                                <argument>${sub.class}</argument>
+                                <argument>--vs</argument>
+                                <argument>${opponent}</argument>
+                                <argument>--games</argument>
+                                <argument>${games}</argument>
+                                <argument>--combat-minutes</argument>
+                                <argument>${combatMinutes}</argument>
+                                <argument>--threads</argument>
+                                <argument>${threads}</argument>
+                                <argument>--record-losses</argument>
+                                <argument>target/replays</argument>
+                                <argument>--extra-cp</argument>
+                                <argument>${extraCp}</argument>
+                                <argument>--seed</argument>
+                                <argument>${seed}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Local league pre-flight check (bare javac -proc:none + bytecode rules + 2-seed guarded smoke match): mvn -Pcheck -->
+        <profile>
+            <id>check</id>
+            <build>
+                <defaultGoal>test-compile exec:exec</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <configuration>
+                            <executable>java</executable>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>-Xmx2g</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>se.hirt.searobots.engine.LeaguePreflight</argument>
+                                <argument>--sub</argument>
+                                <argument>${sub.class}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Print a ready-to-paste entries/<slug>.json registration manifest: mvn -Pmanifest -->
+        <profile>
+            <id>manifest</id>
+            <build>
+                <defaultGoal>test-compile exec:exec</defaultGoal>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <configuration>
+                            <executable>java</executable>
+                            <classpathScope>test</classpathScope>
+                            <arguments>
+                                <argument>-Xmx1g</argument>
+                                <argument>-cp</argument>
+                                <classpath/>
+                                <argument>se.hirt.searobots.engine.LeaguePreflight</argument>
+                                <argument>--sub</argument>
+                                <argument>${sub.class}</argument>
+                                <argument>--no-smoke</argument>
+                                <argument>--manifest</argument>
+                                <argument>--license</argument>
+                                <argument>${license}</argument>
+                                <argument>--description</argument>
+                                <argument>${sub.description}</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
