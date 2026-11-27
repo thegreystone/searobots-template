@@ -1,7 +1,7 @@
 # SeaRobots Submarine Template
 
 A minimal, self-contained Java 25 starter repository for building an autonomous submarine
-for [SeaRobots](https://github.com/thegreystone/searobots) and the SeaRobots Monthly League.
+for [SeaRobots](https://github.com/thegreystone/searobots) and the SeaRobots Open League.
 
 The included [StarterSubmarine](src/main/java/com/example/mysub/StarterSubmarine.java)
 and [StarterTorpedo](src/main/java/com/example/mysub/StarterTorpedo.java) are
